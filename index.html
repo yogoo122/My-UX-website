@@ -134,6 +134,7 @@
                         <input type="text" id="work-description" placeholder="作品描述">
                         <input type="text" id="work-category" placeholder="分类 (app/web/brand)">
                         <input type="text" id="work-image" placeholder="图片URL">
+                        <button id="edit-image" class="btn">编辑图片</button>
                         <button id="add-work" class="btn">添加作品</button>
                     </div>
                     <h4>现有作品</h4>
@@ -158,6 +159,143 @@
 
     <!-- CMS切换按钮 -->
     <button id="toggle-cms" class="cms-toggle">管理内容</button>
+
+    <!-- 图片编辑工具模态框 -->
+    <div id="image-editor" class="image-editor">
+        <div class="image-editor-header">
+            <h3>图片编辑器</h3>
+            <button id="close-editor" class="editor-close">×</button>
+        </div>
+        <div class="image-editor-content">
+            <div class="editor-left">
+                <canvas id="editor-canvas" class="editor-canvas"></canvas>
+                <div class="editor-controls">
+                    <button id="undo-btn" class="editor-btn">撤销</button>
+                    <button id="redo-btn" class="editor-btn">重做</button>
+                    <button id="reset-btn" class="editor-btn">重置</button>
+                </div>
+            </div>
+            <div class="editor-right">
+                <div class="editor-tabs">
+                    <button class="editor-tab active" data-tab="basic">基础编辑</button>
+                    <button class="editor-tab" data-tab="filters">滤镜</button>
+                    <button class="editor-tab" data-tab="text">文字</button>
+                    <button class="editor-tab" data-tab="stickers">贴纸</button>
+                </div>
+                <div class="editor-tab-content">
+                    <!-- 基础编辑 -->
+                    <div class="editor-pane active" id="basic-tab">
+                        <div class="control-group">
+                            <label>裁剪</label>
+                            <div class="crop-controls">
+                                <button class="crop-btn" data-ratio="1:1">1:1</button>
+                                <button class="crop-btn" data-ratio="4:3">4:3</button>
+                                <button class="crop-btn" data-ratio="16:9">16:9</button>
+                                <button class="crop-btn" data-ratio="free">自由</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>旋转</label>
+                            <div class="rotate-controls">
+                                <button id="rotate-left" class="rotate-btn">←</button>
+                                <button id="rotate-right" class="rotate-btn">→</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>亮度</label>
+                            <input type="range" id="brightness" min="-100" max="100" value="0">
+                        </div>
+                        <div class="control-group">
+                            <label>对比度</label>
+                            <input type="range" id="contrast" min="-100" max="100" value="0">
+                        </div>
+                        <div class="control-group">
+                            <label>饱和度</label>
+                            <input type="range" id="saturation" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+                    <!-- 滤镜 -->
+                    <div class="editor-pane" id="filters-tab">
+                        <div class="filter-grid">
+                            <div class="filter-item active" data-filter="none">
+                                <div class="filter-preview"></div>
+                                <span>原图</span>
+                            </div>
+                            <div class="filter-item" data-filter="grayscale">
+                                <div class="filter-preview"></div>
+                                <span>灰度</span>
+                            </div>
+                            <div class="filter-item" data-filter="sepia">
+                                <div class="filter-preview"></div>
+                                <span>复古</span>
+                            </div>
+                            <div class="filter-item" data-filter="blur">
+                                <div class="filter-preview"></div>
+                                <span>模糊</span>
+                            </div>
+                            <div class="filter-item" data-filter="bright">
+                                <div class="filter-preview"></div>
+                                <span>明亮</span>
+                            </div>
+                            <div class="filter-item" data-filter="dark">
+                                <div class="filter-preview"></div>
+                                <span>暗黑</span>
+                            </div>
+                            <div class="filter-item" data-filter="warm">
+                                <div class="filter-preview"></div>
+                                <span>暖色</span>
+                            </div>
+                            <div class="filter-item" data-filter="cool">
+                                <div class="filter-preview"></div>
+                                <span>冷色</span>
+                            </div>
+                            <div class="filter-item" data-filter="vintage">
+                                <div class="filter-preview"></div>
+                                <span>复古风</span>
+                            </div>
+                            <div class="filter-item" data-filter="pop">
+                                <div class="filter-preview"></div>
+                                <span>流行</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 文字 -->
+                    <div class="editor-pane" id="text-tab">
+                        <input type="text" id="text-input" placeholder="输入文字">
+                        <div class="text-controls">
+                            <select id="text-font">
+                                <option value="Arial">Arial</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                            <input type="number" id="text-size" min="12" max="100" value="24" placeholder="字号">
+                            <input type="color" id="text-color" value="#ffffff">
+                            <button id="add-text" class="btn">添加文字</button>
+                        </div>
+                    </div>
+                    <!-- 贴纸 -->
+                    <div class="editor-pane" id="stickers-tab">
+                        <div class="sticker-grid">
+                            <div class="sticker-item" data-sticker="🌟">🌟</div>
+                            <div class="sticker-item" data-sticker="❤️">❤️</div>
+                            <div class="sticker-item" data-sticker="⭐">⭐</div>
+                            <div class="sticker-item" data-sticker="🎉">🎉</div>
+                            <div class="sticker-item" data-sticker="🔥">🔥</div>
+                            <div class="sticker-item" data-sticker="💯">💯</div>
+                            <div class="sticker-item" data-sticker="✨">✨</div>
+                            <div class="sticker-item" data-sticker="📷">📷</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-actions">
+                    <button id="save-jpg" class="btn">保存为JPG</button>
+                    <button id="save-png" class="btn">保存为PNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

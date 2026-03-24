@@ -130,6 +130,7 @@ const elements = {
     workDescription: document.getElementById('work-description'),
     workCategory: document.getElementById('work-category'),
     workImage: document.getElementById('work-image'),
+    editImage: document.getElementById('edit-image'),
     addWork: document.getElementById('add-work'),
     worksList: document.getElementById('works-list'),
     editEmail: document.getElementById('edit-email'),
@@ -146,8 +147,376 @@ const elements = {
     skills: document.querySelector('.skills'),
     contactEmail: document.getElementById('contact-email'),
     contactPhone: document.getElementById('contact-phone'),
-    socialLinks: document.querySelectorAll('.social-link')
+    socialLinks: document.querySelectorAll('.social-link'),
+    // 图片编辑器元素
+    imageEditor: document.getElementById('image-editor'),
+    closeEditor: document.getElementById('close-editor'),
+    editorCanvas: document.getElementById('editor-canvas'),
+    undoBtn: document.getElementById('undo-btn'),
+    redoBtn: document.getElementById('redo-btn'),
+    resetBtn: document.getElementById('reset-btn'),
+    editorTabs: document.querySelectorAll('.editor-tab'),
+    editorPanes: document.querySelectorAll('.editor-pane'),
+    cropBtns: document.querySelectorAll('.crop-btn'),
+    rotateLeft: document.getElementById('rotate-left'),
+    rotateRight: document.getElementById('rotate-right'),
+    brightness: document.getElementById('brightness'),
+    contrast: document.getElementById('contrast'),
+    saturation: document.getElementById('saturation'),
+    filterItems: document.querySelectorAll('.filter-item'),
+    textInput: document.getElementById('text-input'),
+    textFont: document.getElementById('text-font'),
+    textSize: document.getElementById('text-size'),
+    textColor: document.getElementById('text-color'),
+    addText: document.getElementById('add-text'),
+    stickerItems: document.querySelectorAll('.sticker-item'),
+    saveJpg: document.getElementById('save-jpg'),
+    savePng: document.getElementById('save-png')
 };
+
+// 图片编辑器类
+class ImageEditor {
+    constructor() {
+        this.canvas = elements.editorCanvas;
+        this.ctx = this.canvas.getContext('2d');
+        this.originalImage = null;
+        this.currentImage = null;
+        this.history = [];
+        this.historyIndex = -1;
+        this.filters = {
+            none: (ctx) => {},
+            grayscale: (ctx) => {
+                ctx.filter = 'grayscale(100%)';
+            },
+            sepia: (ctx) => {
+                ctx.filter = 'sepia(100%)';
+            },
+            blur: (ctx) => {
+                ctx.filter = 'blur(5px)';
+            },
+            bright: (ctx) => {
+                ctx.filter = 'brightness(150%)';
+            },
+            dark: (ctx) => {
+                ctx.filter = 'brightness(70%)';
+            },
+            warm: (ctx) => {
+                ctx.filter = 'sepia(30%) brightness(110%)';
+            },
+            cool: (ctx) => {
+                ctx.filter = 'hue-rotate(180deg) brightness(105%)';
+            },
+            vintage: (ctx) => {
+                ctx.filter = 'sepia(50%) contrast(120%) brightness(90%)';
+            },
+            pop: (ctx) => {
+                ctx.filter = 'saturate(150%) contrast(120%)';
+            }
+        };
+        this.currentFilter = 'none';
+        this.brightness = 0;
+        this.contrast = 0;
+        this.saturation = 0;
+        this.rotation = 0;
+        this.cropRatio = 'free';
+        this.texts = [];
+        this.stickers = [];
+        this.initEventListeners();
+    }
+
+    initEventListeners() {
+        // 编辑器开关
+        elements.editImage.addEventListener('click', () => this.openEditor());
+        elements.closeEditor.addEventListener('click', () => this.closeEditor());
+
+        // 编辑器标签切换
+        elements.editorTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                elements.editorTabs.forEach(t => t.classList.remove('active'));
+                elements.editorPanes.forEach(pane => pane.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
+
+        // 裁剪按钮
+        elements.cropBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                elements.cropBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.cropRatio = btn.dataset.ratio;
+            });
+        });
+
+        // 旋转按钮
+        elements.rotateLeft.addEventListener('click', () => this.rotate(-90));
+        elements.rotateRight.addEventListener('click', () => this.rotate(90));
+
+        // 调整参数
+        elements.brightness.addEventListener('input', (e) => {
+            this.brightness = parseInt(e.target.value);
+            this.applyChanges();
+        });
+        elements.contrast.addEventListener('input', (e) => {
+            this.contrast = parseInt(e.target.value);
+            this.applyChanges();
+        });
+        elements.saturation.addEventListener('input', (e) => {
+            this.saturation = parseInt(e.target.value);
+            this.applyChanges();
+        });
+
+        // 滤镜
+        elements.filterItems.forEach(item => {
+            item.addEventListener('click', () => {
+                elements.filterItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                this.currentFilter = item.dataset.filter;
+                this.applyChanges();
+            });
+        });
+
+        // 添加文字
+        elements.addText.addEventListener('click', () => this.addText());
+
+        // 添加贴纸
+        elements.stickerItems.forEach(item => {
+            item.addEventListener('click', () => {
+                this.addSticker(item.dataset.sticker);
+            });
+        });
+
+        // 撤销/重做
+        elements.undoBtn.addEventListener('click', () => this.undo());
+        elements.redoBtn.addEventListener('click', () => this.redo());
+        elements.resetBtn.addEventListener('click', () => this.reset());
+
+        // 保存
+        elements.saveJpg.addEventListener('click', () => this.save('jpg'));
+        elements.savePng.addEventListener('click', () => this.save('png'));
+    }
+
+    openEditor() {
+        const imageUrl = elements.workImage.value.trim();
+        if (!imageUrl) {
+            alert('请先输入图片URL');
+            return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            this.originalImage = img;
+            this.currentImage = img;
+            this.reset();
+            this.canvas.width = Math.min(img.width, 800);
+            this.canvas.height = Math.min(img.height, 600);
+            this.applyChanges();
+            elements.imageEditor.classList.add('active');
+        };
+        img.onerror = () => {
+            alert('图片加载失败，请检查URL');
+        };
+        img.src = imageUrl;
+    }
+
+    closeEditor() {
+        elements.imageEditor.classList.remove('active');
+    }
+
+    rotate(degrees) {
+        this.rotation += degrees;
+        this.applyChanges();
+    }
+
+    addText() {
+        const text = elements.textInput.value.trim();
+        if (!text) return;
+
+        this.texts.push({
+            text,
+            font: `${elements.textSize.value}px ${elements.textFont.value}`,
+            color: elements.textColor.value,
+            x: 50,
+            y: 50
+        });
+        this.applyChanges();
+    }
+
+    addSticker(sticker) {
+        this.stickers.push({
+            emoji: sticker,
+            x: 50,
+            y: 50,
+            size: 48
+        });
+        this.applyChanges();
+    }
+
+    applyChanges() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 保存当前状态
+        this.ctx.save();
+
+        // 应用旋转
+        this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.rotate((this.rotation * Math.PI) / 180);
+        this.ctx.translate(-this.canvas.width / 2, -this.canvas.height / 2);
+
+        // 应用滤镜
+        this.ctx.filter = 'none';
+        this.filters[this.currentFilter](this.ctx);
+
+        // 绘制图像
+        this.ctx.drawImage(
+            this.currentImage,
+            0,
+            0,
+            this.canvas.width,
+            this.canvas.height
+        );
+
+        // 应用亮度、对比度、饱和度
+        this.ctx.filter = `brightness(${100 + this.brightness}%) contrast(${100 + this.contrast}%) saturate(${100 + this.saturation}%)`;
+        this.ctx.drawImage(
+            this.canvas,
+            0,
+            0,
+            this.canvas.width,
+            this.canvas.height
+        );
+
+        // 绘制文字
+        this.ctx.filter = 'none';
+        this.texts.forEach(textObj => {
+            this.ctx.font = textObj.font;
+            this.ctx.fillStyle = textObj.color;
+            this.ctx.fillText(textObj.text, textObj.x, textObj.y);
+        });
+
+        // 绘制贴纸
+        this.stickers.forEach(stickerObj => {
+            this.ctx.font = `${stickerObj.size}px Arial`;
+            this.ctx.fillText(stickerObj.emoji, stickerObj.x, stickerObj.y);
+        });
+
+        // 恢复状态
+        this.ctx.restore();
+
+        // 保存到历史记录
+        this.saveToHistory();
+    }
+
+    saveToHistory() {
+        // 移除当前索引之后的历史记录
+        this.history = this.history.slice(0, this.historyIndex + 1);
+        // 保存当前状态
+        const state = {
+            brightness: this.brightness,
+            contrast: this.contrast,
+            saturation: this.saturation,
+            rotation: this.rotation,
+            currentFilter: this.currentFilter,
+            texts: JSON.parse(JSON.stringify(this.texts)),
+            stickers: JSON.parse(JSON.stringify(this.stickers))
+        };
+        this.history.push(state);
+        this.historyIndex++;
+
+        // 限制历史记录长度
+        if (this.history.length > 20) {
+            this.history.shift();
+            this.historyIndex--;
+        }
+    }
+
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            const state = this.history[this.historyIndex];
+            this.brightness = state.brightness;
+            this.contrast = state.contrast;
+            this.saturation = state.saturation;
+            this.rotation = state.rotation;
+            this.currentFilter = state.currentFilter;
+            this.texts = state.texts;
+            this.stickers = state.stickers;
+            
+            // 更新UI
+            elements.brightness.value = this.brightness;
+            elements.contrast.value = this.contrast;
+            elements.saturation.value = this.saturation;
+            elements.filterItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.filter === this.currentFilter);
+            });
+
+            this.applyChanges();
+        }
+    }
+
+    redo() {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            const state = this.history[this.historyIndex];
+            this.brightness = state.brightness;
+            this.contrast = state.contrast;
+            this.saturation = state.saturation;
+            this.rotation = state.rotation;
+            this.currentFilter = state.currentFilter;
+            this.texts = state.texts;
+            this.stickers = state.stickers;
+            
+            // 更新UI
+            elements.brightness.value = this.brightness;
+            elements.contrast.value = this.contrast;
+            elements.saturation.value = this.saturation;
+            elements.filterItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.filter === this.currentFilter);
+            });
+
+            this.applyChanges();
+        }
+    }
+
+    reset() {
+        this.brightness = 0;
+        this.contrast = 0;
+        this.saturation = 0;
+        this.rotation = 0;
+        this.currentFilter = 'none';
+        this.texts = [];
+        this.stickers = [];
+        this.history = [];
+        this.historyIndex = -1;
+
+        // 更新UI
+        elements.brightness.value = 0;
+        elements.contrast.value = 0;
+        elements.saturation.value = 0;
+        elements.filterItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.filter === 'none');
+        });
+        elements.cropBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.ratio === 'free');
+        });
+
+        this.applyChanges();
+    }
+
+    save(format) {
+        const dataUrl = this.canvas.toDataURL(`image/${format}`, 0.9);
+        
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `edited-image.${format}`;
+        link.click();
+
+        // 也可以将结果设置回输入框
+        elements.workImage.value = dataUrl;
+    }
+}
 
 // 初始化页面
 function initPage() {
@@ -156,6 +525,8 @@ function initPage() {
     renderAbout();
     renderContact();
     initCMS();
+    // 初始化图片编辑器
+    new ImageEditor();
 }
 
 // 渲染封面页
