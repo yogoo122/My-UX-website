@@ -842,6 +842,76 @@ function deleteWork(id) {
 // 页面加载完成后初始化
 window.addEventListener('DOMContentLoaded', initPage);
 
+// 导航栏滚动效果
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
+});
+
+// 滚动触发式叙事功能
+function handleScrollReveal() {
+    const elements = document.querySelectorAll('.scroll-reveal');
+    elements.forEach(element => {
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+        if (elementTop < window.innerHeight - elementVisible) {
+            element.classList.add('active');
+        }
+    });
+}
+
+// 项目卡片的丝滑展开交互
+function initWorkItemExpansion() {
+    const workItems = document.querySelectorAll('.work-item');
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    document.body.appendChild(overlay);
+
+    workItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // 防止冒泡到详情页点击事件
+            if (!item.classList.contains('expanded')) {
+                item.classList.add('expanded');
+                overlay.classList.add('active');
+            }
+        });
+    });
+
+    overlay.addEventListener('click', () => {
+        const expandedItem = document.querySelector('.work-item.expanded');
+        if (expandedItem) {
+            expandedItem.classList.remove('expanded');
+            overlay.classList.remove('active');
+        }
+    });
+}
+
+// tvOS风格的视差倾斜交互效果
+function initParallaxTilt() {
+    const cards = document.querySelectorAll('.glass-card, .work-item');
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (y - centerY) / 10;
+            const rotateY = (centerX - x) / 10;
+            card.style.setProperty('--rotateX', `${rotateX}deg`);
+            card.style.setProperty('--rotateY', `${rotateY}deg`);
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.setProperty('--rotateX', '0deg');
+            card.style.setProperty('--rotateY', '0deg');
+        });
+    });
+}
+
 // 平滑滚动
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
@@ -852,3 +922,15 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// 初始化所有交互功能
+function initInteractions() {
+    window.addEventListener('scroll', handleScrollReveal);
+    initWorkItemExpansion();
+    initParallaxTilt();
+    // 初始触发一次滚动检测
+    handleScrollReveal();
+}
+
+// 在页面加载完成后初始化交互功能
+window.addEventListener('DOMContentLoaded', initInteractions);
