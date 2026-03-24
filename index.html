@@ -62,6 +62,16 @@
         </div>
     </section>
 
+    <!-- 作品详情页 -->
+    <section id="work-detail" class="work-detail">
+        <div class="container">
+            <button id="back-to-works" class="back-btn">← 返回作品列表</button>
+            <div class="work-detail-content" id="work-detail-content">
+                <!-- 作品详情将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </section>
+
     <section id="contact" class="contact">
         <div class="container">
             <h2>联系我</h2>
@@ -133,7 +143,10 @@
                         <input type="text" id="work-title" placeholder="作品标题">
                         <input type="text" id="work-description" placeholder="作品描述">
                         <input type="text" id="work-category" placeholder="分类 (app/web/brand)">
-                        <input type="text" id="work-image" placeholder="图片URL">
+                        <input type="text" id="work-date" placeholder="创作时间 (如: 2026-03-24)">
+                        <input type="text" id="work-tags" placeholder="标签 (用逗号分隔)">
+                        <input type="text" id="work-image" placeholder="主图片URL">
+                        <input type="text" id="work-gallery" placeholder="图库图片URL (用逗号分隔)">
                         <button id="edit-image" class="btn">编辑图片</button>
                         <button id="add-work" class="btn">添加作品</button>
                     </div>

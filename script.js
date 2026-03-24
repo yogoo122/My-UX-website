@@ -129,7 +129,10 @@ const elements = {
     workTitle: document.getElementById('work-title'),
     workDescription: document.getElementById('work-description'),
     workCategory: document.getElementById('work-category'),
+    workDate: document.getElementById('work-date'),
+    workTags: document.getElementById('work-tags'),
     workImage: document.getElementById('work-image'),
+    workGallery: document.getElementById('work-gallery'),
     editImage: document.getElementById('edit-image'),
     addWork: document.getElementById('add-work'),
     worksList: document.getElementById('works-list'),
@@ -544,7 +547,7 @@ function renderWorks(filter = 'all') {
     const works = filter === 'all' ? data.works : data.works.filter(work => work.category === filter);
 
     elements.worksGrid.innerHTML = works.map(work => `
-        <div class="work-item" data-category="${work.category}">
+        <div class="work-item" data-id="${work.id}" data-category="${work.category}">
             <img src="${work.image}" alt="${work.title}">
             <div class="work-content">
                 <h3>${work.title}</h3>
@@ -553,6 +556,55 @@ function renderWorks(filter = 'all') {
             </div>
         </div>
     `).join('');
+
+    // 添加点击事件
+    document.querySelectorAll('.work-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const workId = parseInt(item.dataset.id);
+            showWorkDetail(workId);
+        });
+    });
+}
+
+// 显示作品详情
+function showWorkDetail(workId) {
+    const data = dataManager.getData();
+    const work = data.works.find(w => w.id == workId);
+    if (!work) return;
+
+    // 隐藏作品列表，显示详情页
+    document.getElementById('works').classList.add('hidden');
+    document.getElementById('work-detail').classList.add('active');
+
+    // 填充详情页内容
+    const detailContent = document.getElementById('work-detail-content');
+    detailContent.innerHTML = `
+        <div class="work-detail-header">
+            <h1>${work.title}</h1>
+            <div class="work-detail-meta">
+                <span>分类: ${work.category === 'app' ? '移动应用' : work.category === 'web' ? '网站设计' : '品牌设计'}</span>
+                <span>创作时间: ${work.date || '2026'}</span>
+            </div>
+            <div class="work-detail-tags">
+                ${work.tags ? work.tags.map(tag => `<span class="work-detail-tag">${tag}</span>`).join('') : ''}
+            </div>
+        </div>
+        <img src="${work.image}" alt="${work.title}" class="work-detail-image">
+        <div class="work-detail-body">
+            <div class="work-detail-description">${work.description}</div>
+            ${work.gallery ? `
+                <div class="work-detail-gallery">
+                    ${work.gallery.map(img => `<img src="${img}" alt="${work.title}">`).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    // 添加返回按钮事件
+    document.getElementById('back-to-works').addEventListener('click', () => {
+        document.getElementById('work-detail').classList.remove('active');
+        document.getElementById('works').classList.remove('hidden');
+    });
 }
 
 // 渲染个人介绍
@@ -639,7 +691,10 @@ function initCMS() {
             title: elements.workTitle.value.trim(),
             description: elements.workDescription.value.trim(),
             category: elements.workCategory.value.trim(),
-            image: elements.workImage.value.trim()
+            date: elements.workDate.value.trim(),
+            tags: elements.workTags.value.trim() ? elements.workTags.value.trim().split(',').map(tag => tag.trim()) : [],
+            image: elements.workImage.value.trim(),
+            gallery: elements.workGallery.value.trim() ? elements.workGallery.value.trim().split(',').map(img => img.trim()) : []
         };
         if (work.title && work.description && work.category && work.image) {
             dataManager.addWork(work);
@@ -648,7 +703,10 @@ function initCMS() {
             elements.workTitle.value = '';
             elements.workDescription.value = '';
             elements.workCategory.value = '';
+            elements.workDate.value = '';
+            elements.workTags.value = '';
             elements.workImage.value = '';
+            elements.workGallery.value = '';
             alert('作品已添加');
         }
     });
@@ -748,11 +806,20 @@ function editWork(id) {
             const title = prompt('作品标题:', work.title);
             const description = prompt('作品描述:', work.description);
             const category = prompt('分类 (app/web/brand):', work.category);
-            const image = prompt('图片URL:', work.image);
+            const date = prompt('创作时间:', work.date || '');
+            const tags = prompt('标签 (用逗号分隔):', work.tags ? work.tags.join(', ') : '');
+            const image = prompt('主图片URL:', work.image);
+            const gallery = prompt('图库图片URL (用逗号分隔):', work.gallery ? work.gallery.join(', ') : '');
 
             if (title && description && category && image) {
                 dataManager.updateWork(id, {
-                    title, description, category, image
+                    title,
+                    description,
+                    category,
+                    date: date.trim(),
+                    tags: tags.trim() ? tags.trim().split(',').map(tag => tag.trim()) : [],
+                    image,
+                    gallery: gallery.trim() ? gallery.trim().split(',').map(img => img.trim()) : []
                 });
                 renderWorks();
                 renderWorksList();
