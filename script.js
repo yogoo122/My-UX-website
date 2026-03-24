@@ -7,6 +7,12 @@ class DataManager {
     initDefaultData() {
         if (!localStorage.getItem('portfolioData')) {
             const defaultData = {
+                hero: {
+                    title: 'UX 设计师',
+                    subtitle: '创造有意义的用户体验',
+                    buttonText: '查看作品',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                },
                 about: {
                     description: '我是一名专业的UX设计师，拥有5年的设计经验，专注于用户体验设计、交互设计和界面设计。我相信好的设计应该是直观、易用且美观的。',
                     skills: ['UI设计', 'UX研究', '交互设计', '原型设计', '用户测试']
@@ -90,6 +96,12 @@ class DataManager {
         data.contact = contact;
         this.saveData(data);
     }
+
+    updateHero(hero) {
+        const data = this.getData();
+        data.hero = hero;
+        this.saveData(data);
+    }
 }
 
 // 初始化数据管理器
@@ -104,6 +116,11 @@ const elements = {
     tabPanes: document.querySelectorAll('.tab-pane'),
     worksGrid: document.getElementById('works-grid'),
     filterButtons: document.querySelectorAll('.filter-btn'),
+    editHeroTitle: document.getElementById('edit-hero-title'),
+    editHeroSubtitle: document.getElementById('edit-hero-subtitle'),
+    editHeroButton: document.getElementById('edit-hero-button'),
+    editHeroBg: document.getElementById('edit-hero-bg'),
+    saveHero: document.getElementById('save-hero'),
     editAbout: document.getElementById('edit-about'),
     saveAbout: document.getElementById('save-about'),
     newSkill: document.getElementById('new-skill'),
@@ -121,6 +138,10 @@ const elements = {
     editDribbble: document.getElementById('edit-dribbble'),
     editLinkedin: document.getElementById('edit-linkedin'),
     saveContact: document.getElementById('save-contact'),
+    hero: document.querySelector('.hero'),
+    heroTitle: document.querySelector('.hero-content h1'),
+    heroSubtitle: document.querySelector('.hero-content p'),
+    heroButton: document.querySelector('.hero-content .btn'),
     aboutDescription: document.getElementById('about-description'),
     skills: document.querySelector('.skills'),
     contactEmail: document.getElementById('contact-email'),
@@ -130,10 +151,20 @@ const elements = {
 
 // 初始化页面
 function initPage() {
+    renderHero();
     renderWorks();
     renderAbout();
     renderContact();
     initCMS();
+}
+
+// 渲染封面页
+function renderHero() {
+    const data = dataManager.getData();
+    elements.heroTitle.textContent = data.hero.title;
+    elements.heroSubtitle.textContent = data.hero.subtitle;
+    elements.heroButton.textContent = data.hero.buttonText;
+    elements.hero.style.background = data.hero.background;
 }
 
 // 渲染作品
@@ -185,6 +216,21 @@ function initCMS() {
 
     elements.closeCms.addEventListener('click', () => {
         elements.cmsPanel.classList.remove('active');
+    });
+
+    // 保存封面页
+    elements.saveHero.addEventListener('click', () => {
+        const hero = {
+            title: elements.editHeroTitle.value.trim(),
+            subtitle: elements.editHeroSubtitle.value.trim(),
+            buttonText: elements.editHeroButton.value.trim(),
+            background: elements.editHeroBg.value.trim()
+        };
+        if (hero.title && hero.subtitle && hero.buttonText && hero.background) {
+            dataManager.updateHero(hero);
+            renderHero();
+            alert('封面页已保存');
+        }
     });
 
     // 标签切换
@@ -265,6 +311,12 @@ function initCMS() {
 // 加载数据到CMS
 function loadDataToCMS() {
     const data = dataManager.getData();
+
+    // 加载封面页
+    elements.editHeroTitle.value = data.hero.title;
+    elements.editHeroSubtitle.value = data.hero.subtitle;
+    elements.editHeroButton.value = data.hero.buttonText;
+    elements.editHeroBg.value = data.hero.background;
 
     // 加载个人介绍
     elements.editAbout.value = data.about.description;
